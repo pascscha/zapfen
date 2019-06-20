@@ -125,7 +125,7 @@ def add_drink(bot, user_id, user_command, drink, size_str):
         sprueche = f.read().split("\n\n")
     spruch = random.choice(sprueche)
     out = "Du trenksch {} {}.\n\n<i>{}</i>".format(size_str, drink, spruch)
-    bot.send_message(user_id, out)
+    bot.send_message(user_id, out, parse_mode=telegram.ParseMode.HTML)
 
     command = "INSERT INTO consumptions (user_id, drink_id, amount, ts, command, precision) VALUES ({}, {}, {}, {}, '{}', {});".format(user_id, drink_id, size, timestamp, user_command, precision)
     execute_command(db_file, command)

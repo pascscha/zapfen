@@ -165,7 +165,7 @@ def start(bot, update):
     user_name = update.message.from_user.first_name
     command = "INSERT INTO users (id,name) VALUES ({}, '{}');".format(user_id, user_name)
     execute_command(db_file, command)
-    bot.send_message(update.message.from_user.id, text="Welcome to Zapfen Bot. Just type /zapfen and enter your drink.")
+    bot.send_message(update.message.from_user.id, text="Welcome to Zapfen Bot. Just type /zapfen and enter your drink. Type /highscore for a Highscore. Don't worry if you can't type anymore, i'll try to guess what you meant ;)")
 
 
 if __name__ == "__main__":

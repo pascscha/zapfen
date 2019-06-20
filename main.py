@@ -21,7 +21,7 @@ def command(bot, update):
     result = process.extractOne(command, list(available_commands.keys()), scorer=fuzz.ratio)
     if result[1] < 50:
         out = "Oops, I'm not sure which command you mean. Possible options are:"
-        for command in commands:
+        for command in ist(available_commands.keys()):
             out += "\n/{}".format(command)
         bot.send_message(update.message.from_user.id,
                          text=out,
@@ -72,10 +72,10 @@ def keyboard_response(bot, update):
             choices = [["3dl"], ["5dl"], ["1l"]]
             show_keyboard(bot, update, choices, "drink", "Wie gross?", command=command, user_id=user_id)
         elif value == "Shot":
-            choices = [["2cl"], ["4cl"], ["8cl"]]
+            choices = [["1cl"], ["2cl"], ["4cl"]]
             show_keyboard(bot, update, choices, "shot", "Wie gross?", command=command, user_id=user_id)
         elif value == "Wein":
-            choices = [["2dl"], ["4dl"]]
+            choices = [["1dl"], ["2dl"]]
             show_keyboard(bot, update, choices, "wein", "Wie gross?", command=command, user_id=user_id)
     elif action == "highscore":
         second = 1000

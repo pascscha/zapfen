@@ -100,7 +100,7 @@ def keyboard_response(bot, update):
             out = "<b>Highscore for the last {}:</b>\n".format(value)
             for rank, (amount, name) in enumerate(best):
                 amount_in_beer = amount / 5
-                out += "{} {}: {:.1f}l Beer\n".format(rank + 1, name, amount_in_beer)
+                out += "<b>{} {}</b>: {:.1f}l Bier\n".format(rank + 1, name, amount_in_beer)
         bot.send_message(user_id, out, parse_mode=telegram.ParseMode.HTML)
 
     else:

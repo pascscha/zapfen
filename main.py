@@ -107,15 +107,15 @@ def keyboard_response(bot, update):
         add_drink(bot, user_id, command, action, value)
 
 
-def add_drink(bot, user_id, user_command, drink, size):
+def add_drink(bot, user_id, user_command, drink, size_str):
     drink_id = drink_ids[drink]
 
-    if size.endswith("cl"):
-        size = float(size.replace("cl", "")) / 100
-    elif size.endswith("dl"):
-        size = float(size.replace("dl", "")) / 10
-    elif size.endswith("l"):
-        size = float(size.replace("l", ""))
+    if size_str.endswith("cl"):
+        size = float(size_str.replace("cl", "")) / 100
+    elif size_str.endswith("dl"):
+        size = float(size_str.replace("dl", "")) / 10
+    elif size_str.endswith("l"):
+        size = float(size_str.replace("l", ""))
 
     timestamp = int(time.time() * 1000)
 
@@ -124,7 +124,8 @@ def add_drink(bot, user_id, user_command, drink, size):
     with open("trinksprüche.txt") as f:
         sprueche = f.read().split("\n\n")
     spruch = random.choice(sprueche)
-    bot.send_message(user_id, spruch)
+    out = "Du trenksch {} {}.\n\n<i>{}</i>".format(size_str, drink, spruch)
+    bot.send_message(user_id, out)
 
     command = "INSERT INTO consumptions (user_id, drink_id, amount, ts, command, precision) VALUES ({}, {}, {}, {}, '{}', {});".format(user_id, drink_id, size, timestamp, user_command, precision)
     execute_command(db_file, command)

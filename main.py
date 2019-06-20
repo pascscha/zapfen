@@ -138,7 +138,7 @@ def highscore(bot, update):
 
 def get_best(time_ms):
     min_timestamp = int(time.time() * 1000) - time_ms
-    command = "SELECT SUM(consumptions.amount*drinks.vol),users.name FROM consumptions JOIN users ON consumptions.user_id = users.id JOIN drinks on consumptions.drink_id = drinks.id WHERE consumptions.ts > {} ORDER BY SUM(consumptions.amount*drinks.vol) DESC;".format(min_timestamp)
+    command = "SELECT SUM(consumptions.amount*drinks.vol),users.name FROM consumptions JOIN users ON consumptions.user_id = users.id JOIN drinks on consumptions.drink_id = drinks.id WHERE consumptions.ts > {} GROUP BY consumptions.user_id ORDER BY SUM(consumptions.amount*drinks.vol) DESC;".format(min_timestamp)
     return list(execute_command(db_file, command))
 
 

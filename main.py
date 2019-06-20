@@ -93,10 +93,13 @@ def keyboard_response(bot, update):
         else:
             time = 1000
         best = get_best(time)
-        out = "<b>Highscore for the last {}:</b>\n".format(value)
-        for rank, (amount, name) in enumerate(best):
-            amount_in_beer = amount / 5
-            out += "{} {}: {:.1f} Beers\n".format(rank + 1, name, amount_in_beer)
+        if best[0][0] is None:
+            out = "<i>Noone has participated in this timeframe</i>\n".format(value)
+        else:
+            out = "<b>Highscore for the last {}:</b>\n".format(value)
+            for rank, (amount, name) in enumerate(best):
+                amount_in_beer = amount / 5
+                out += "{} {}: {:.1f} Beers\n".format(rank + 1, name, amount_in_beer)
         bot.send_message(user_id, out, parse_mode=telegram.ParseMode.HTML)
 
     else:
@@ -142,7 +145,9 @@ def execute_command(db_file, command):
         logger.info("executing " + command)
         cur.execute(command)
         conn.commit()
-        return cur.fetchall()
+        out = cur.fetchall()
+        logger.info(out)
+        return out
     except Error as e:
         print(e)
     finally:

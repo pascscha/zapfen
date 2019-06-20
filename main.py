@@ -4,6 +4,7 @@ import utils
 import logging
 import time
 from fuzzywuzzy import process, fuzz
+import random
 
 import telegram
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
@@ -99,7 +100,7 @@ def keyboard_response(bot, update):
             out = "<b>Highscore for the last {}:</b>\n".format(value)
             for rank, (amount, name) in enumerate(best):
                 amount_in_beer = amount / 5
-                out += "{} {}: {:.1f} Beers\n".format(rank + 1, name, amount_in_beer)
+                out += "{} {}: {:.1f}l Beer\n".format(rank + 1, name, amount_in_beer)
         bot.send_message(user_id, out, parse_mode=telegram.ParseMode.HTML)
 
     else:
@@ -120,7 +121,10 @@ def add_drink(bot, user_id, user_command, drink, size):
 
     precision = fuzz.ratio(user_command.lower(), "/zapfen")
 
-    bot.send_message(user_id, "Cheers " + drink)
+    with open("trinksprüche.txt") as f:
+        sprueche = f.read().split("\n\n")
+    spruch = random.choice(sprueche)
+    bot.send_message(user_id, spruch)
 
     command = "INSERT INTO consumptions (user_id, drink_id, amount, ts, command, precision) VALUES ({}, {}, {}, {}, '{}', {});".format(user_id, drink_id, size, timestamp, user_command, precision)
     execute_command(db_file, command)

@@ -40,7 +40,7 @@ def zapfen(bot, update):
     raw_text = update.message.text.strip()
     command = raw_text.split(" ")[0]
     text = raw_text.replace(command, "").strip()
-    choices = [["Bier"], ["Shot"], ["Drink"], ["Wein"]]
+    choices = [["Bier"], ["Shot"], ["Cocktail"], ["Wein"]]
     show_keyboard(bot, update, choices, "zapfen", "Was geds?")
 
 
@@ -59,6 +59,67 @@ def delete(bot, update):
         bot.send_message(update.message.from_user.id,
                          text="Du hesch jo gar nüt tronke!",
                          parse_mode=telegram.ParseMode.HTML)
+
+
+def get_gender(bot, update):
+    choices = [["Bueb", "Meidschi"], ["Wish not to disclose"]]
+    show_keyboard(bot, update, choices, "gender", "Was besch du?")
+
+
+def get_weight(bot, update):
+    raw_text = update.message.text.strip()
+    command = raw_text.split(" ")[0]
+    try:
+        weight = raw_text.split(" ")[1]
+        if "kg" in weight:
+            weight = weight.replace("kg", "")
+            weight = float(weight)
+        elif "g" in weight:
+            weight = weight.replace("g", "")
+            weight = float(weight) * 1000
+        else:
+            weight = float(weight)
+    except Exception as e:
+        print(e)
+        bot.send_message(update.message.from_user.id,
+                         text="Das hani ned verstande. Korrekts biispel: <code>/weight 75kg</code>",
+                         parse_mode=telegram.ParseMode.HTML)
+        return
+
+    command = "UPDATE users SET weight = {} WHERE id = {}".format(weight, update.message.from_user.id)
+    execute_command(db_file, command)
+    bot.send_message(update.message.from_user.id,
+                     text="Du besch jetzt {:.0f}kg schwär!".format(weight),
+                     parse_mode=telegram.ParseMode.HTML)
+
+
+def get_height(bot, update):
+    raw_text = update.message.text.strip()
+    command = raw_text.split(" ")[0]
+    try:
+        height = raw_text.split(" ")[1]
+        if "m" in height:
+            height = height.replace("m", "")
+            height = float(height)
+        elif "cm" in height:
+            height = height.replace("m", "")
+            height = float(height) * 100
+        else:
+            height = float(height)
+            if height < 10:
+                height *= 100
+
+    except:
+        bot.send_message(update.message.from_user.id,
+                         text="Das hani ned verstande. Korrekts biispel: <code>/height 183</code>",
+                         parse_mode=telegram.ParseMode.HTML)
+        return
+
+    command = "UPDATE users SET height = {} WHERE id = {}".format(height, update.message.from_user.id)
+    execute_command(db_file, command)
+    bot.send_message(update.message.from_user.id,
+                     text="Du besch jetzt {:.0f}cm gross!".format(height),
+                     parse_mode=telegram.ParseMode.HTML)
 
 
 def undelete(bot, update):
@@ -108,9 +169,9 @@ def keyboard_response(bot, update):
         if value == "Bier":
             choices = [["3dl"], ["5dl"], ["1l"]]
             show_keyboard(bot, update, choices, "bier", "Wie gross?", command=command, user_id=user_id)
-        elif value == "Drink":
+        elif value == "Cocktail":
             choices = [["3dl"], ["5dl"], ["1l"]]
-            show_keyboard(bot, update, choices, "drink", "Wie gross?", command=command, user_id=user_id)
+            show_keyboard(bot, update, choices, "cocktail", "Wie gross?", command=command, user_id=user_id)
         elif value == "Shot":
             choices = [["1cl"], ["2cl"], ["4cl"]]
             show_keyboard(bot, update, choices, "shot", "Wie gross?", command=command, user_id=user_id)
@@ -162,6 +223,19 @@ def keyboard_response(bot, update):
                 command = "UPDATE consumptions SET deleted = 0 WHERE id = {}".format(consumption_id)
                 execute_command(db_file, command)
                 bot.send_message(user_id, "Ok, hand {}l {} weder zroggholt.".format(amount, drink), parse_mode=telegram.ParseMode.HTML)
+    elif action == "gender":
+        if value == "Meidschi":
+            command = "UPDATE users SET is_female = 1 WHERE id = {}".format(user_id)
+            execute_command(db_file, command)
+            bot.send_message(user_id, "Ok, du besch jetzt es {}".format(value), parse_mode=telegram.ParseMode.HTML)
+        elif value == "Bueb":
+            command = "UPDATE users SET is_female = 0 WHERE id = {}".format(user_id)
+            execute_command(db_file, command)
+            bot.send_message(user_id, "Ok, du besch jetzt en {}".format(value), parse_mode=telegram.ParseMode.HTML)
+        else:
+            command = "UPDATE users SET is_female = 0 WHERE id = {}".format(user_id)
+            execute_command(db_file, command)
+            bot.send_message(user_id, "Ok, wenn du meinsch.".format(value), parse_mode=telegram.ParseMode.HTML)
     else:
         add_drink(bot, user_id, command, action, value)
 
@@ -219,6 +293,54 @@ def execute_command(db_file, command):
     return None
 
 
+def promille(bot, update):
+    promille = promille_rechner(update.message.from_user.id)
+    if promille is None:
+        bot.send_message(update.message.from_user.id,
+                         "Ech bruuche dis gwecht, gschlächt ond dini grössi för das.\n/weight\n/height\n/gender",
+                         parse_mode=telegram.ParseMode.HTML)
+    else:
+        bot.send_message(update.message.from_user.id,
+                         "Du hesch momentan {:.2f}‰.".format(promille),
+                         parse_mode=telegram.ParseMode.HTML)
+
+
+def promille_rechner(user_id):
+    command = "SELECT height,weight,is_female from users WHERE id = {};".format(user_id)
+    height, weight, is_female = execute_command(db_file, command)[0]
+
+    print(height, weight, is_female)
+
+    if height is None or weight is None or is_female is None:
+        return None
+
+    if is_female:
+        koeff = 0.31223 - 0.006446 * weight + 0.004466 * height
+    else:
+        koeff = 0.31608 - 0.004821 * weight + 0.004432 * height
+
+    print(koeff)
+    command = "SELECT ts, amount, drinks.vol FROM consumptions JOIN drinks ON consumptions.drink_id = drinks.id WHERE consumptions.user_id = 505873517 and consumptions.deleted = 0 ORDER BY consumptions.ts ASC"
+    drinks = execute_command(db_file, command)
+
+    last_promille = 0
+    last_timestamp = 0
+
+    for timestamp, amount, vol in drinks:
+        alkohol_g = amount * 0.8 * vol / 100
+        bak_theoretisch = alkohol_g / (weight * koeff)
+        bak_resorbiert = bak_theoretisch - (bak_theoretisch * .15)
+        print(bak_resorbiert)
+        time_since_last = (timestamp - last_timestamp) / (1000 * 60 * 60)
+        last_promille = max(0, last_promille - time_since_last * 0.15) + bak_resorbiert
+        last_timestamp = timestamp
+        print(last_promille)
+
+    now = datetime.timestamp(datetime.now())
+    time_since_last = (now - last_timestamp) / (1000 * 60 * 60)
+    return max(0, last_promille - time_since_last * 0.15) * 1000
+
+
 def start(bot, update):
     user_id = update.message.from_user.id
     user_name = update.message.from_user.first_name
@@ -230,11 +352,16 @@ def start(bot, update):
 
 
 db_file = "zapfen.db"
-drink_ids = {"bier": 0, "drink": 1, "shot": 2, "wein": 3}
-available_commands = {"zapfen": (zapfen, "Add drink"),
-                      "highscore": (highscore, "Show highscore"),
-                      "delete": (delete, "Delete drink"),
-                      "undelete": (undelete, "undelete drink")}
+drink_ids = {"bier": 0, "cocktail": 1, "shot": 2, "wein": 3}
+available_commands = {"zapfen": (zapfen, "Zapf es getränk!"),
+                      "highscore": (highscore, "Wer zapft am fliisigste?"),
+                      "delete": (delete, "Falls eis z'vell gsi esch."),
+                      "undelete": (undelete, "Falls es doch ned z'vell gsi esch"),
+                      "promille": (promille, "Rächnet der us wie vell promille du hesch"),
+                      "gender": (get_gender, "För de Promillerächner"),
+                      "weight": (get_weight, "För de Promillerächner"),
+                      "height": (get_height, "För de Promillerächner"),
+                      }
 
 if __name__ == "__main__":
     updater = Updater(token=utils.apikey)

@@ -51,6 +51,7 @@ sql_create_users_table = """ CREATE TABLE IF NOT EXISTS users (
                                 id integer PRIMARY KEY,
                                 name text NOT NULL,
                                 weight number,
+                                height number,
                                 is_female boolean
                             ); """
 
@@ -68,16 +69,19 @@ sql_create_consumptions_table = """CREATE TABLE IF NOT EXISTS consumptions (
                                 FOREIGN KEY (drink_id) REFERENCES drinks (id)
                                 ); """
 
+sql_add_height_column = """ALTER TABLE users ADD height number;"""
+
 db_file = "zapfen.db"
 conn = create_connection(db_file)
 create_table(conn, sql_delete_drinks_table)
 create_table(conn, sql_create_drinks_table)
 #create_table(conn, sql_delete_users_table)
 create_table(conn, sql_create_users_table)
+create_table(conn, sql_add_height_column)
 create_table(conn, sql_delete_consumptions_table)
 create_table(conn, sql_create_consumptions_table)
 
 execute_command(db_file, "INSERT INTO drinks (id,name,vol) VALUES (0, 'Bier',5);")
-execute_command(db_file, "INSERT INTO drinks (id,name,vol) VALUES (1, 'Drink',10);")
+execute_command(db_file, "INSERT INTO drinks (id,name,vol) VALUES (1, 'Cocktail',10);")
 execute_command(db_file, "INSERT INTO drinks (id,name,vol) VALUES (2, 'Shot',35);")
 execute_command(db_file, "INSERT INTO drinks (id,name,vol) VALUES (3, 'Wine',15);")

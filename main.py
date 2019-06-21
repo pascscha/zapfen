@@ -2,7 +2,7 @@
 
 import utils
 import logging
-import time
+from datetime import datetime
 from fuzzywuzzy import process, fuzz
 import random
 
@@ -19,15 +19,21 @@ def command(bot, update):
     command = raw_text.split(" ")[0]
 
     result = process.extractOne(command, list(available_commands.keys()), scorer=fuzz.ratio)
+    print(result)
     if result[1] < 50:
-        out = "Oops, I'm not sure which command you mean. Possible options are:"
-        for command in ist(available_commands.keys()):
-            out += "\n/{}".format(command)
+        out = "Oops, I'm not sure which command you mean. Possible options are:\n" + instructions()
         bot.send_message(update.message.from_user.id,
                          text=out,
                          parse_mode=telegram.ParseMode.HTML)
     else:
-        available_commands[result[0]](bot, update)
+        available_commands[result[0]][0](bot, update)
+
+
+def instructions():
+    out = ""
+    for command_name, (function, command_description) in available_commands.items():
+        out += "/{} - <i>{}</i>\n".format(command_name, command_description)
+    return out
 
 
 def zapfen(bot, update):
@@ -36,6 +42,40 @@ def zapfen(bot, update):
     text = raw_text.replace(command, "").strip()
     choices = [["Bier"], ["Shot"], ["Drink"], ["Wein"]]
     show_keyboard(bot, update, choices, "zapfen", "Was geds?")
+
+
+def delete(bot, update):
+    command = "SELECT ts,amount,drinks.name FROM consumptions JOIN drinks ON consumptions.drink_id = drinks.id WHERE consumptions.user_id = {} and deleted = 0 ORDER BY consumptions.ts ASC LIMIT 5;".format(update.message.from_user.id)
+    drinks = list(execute_command(db_file, command))
+
+    if len(drinks) > 0:
+        choices = []
+        for timestamp, amount, drink in drinks:
+            dt_object = datetime.fromtimestamp(timestamp)
+            text = "{:%d.%m %H:%M:%S} {}l {}".format(dt_object, amount, drink)
+            choices.append([text])
+        show_keyboard(bot, update, choices, "delete", "Wele esch z'vell?")
+    else:
+        bot.send_message(update.message.from_user.id,
+                         text="Du hesch jo gar nüt tronke!",
+                         parse_mode=telegram.ParseMode.HTML)
+
+
+def undelete(bot, update):
+    command = "SELECT ts,amount,drinks.name FROM consumptions JOIN drinks ON consumptions.drink_id = drinks.id WHERE consumptions.user_id = {} and deleted = 1 ORDER BY consumptions.ts ASC LIMIT 5;".format(update.message.from_user.id)
+    drinks = list(execute_command(db_file, command))
+
+    if len(drinks) > 0:
+        choices = []
+        for timestamp, amount, drink in drinks:
+            dt_object = datetime.fromtimestamp(timestamp)
+            text = "{:%d.%m %H:%M:%S} {}l {}".format(dt_object, amount, drink)
+            choices.append([text])
+        show_keyboard(bot, update, choices, "undelete", "Wele esch doch ned z'vell gsi?")
+    else:
+        bot.send_message(update.message.from_user.id,
+                         text="Du hesch no gar nüüt glöscht!",
+                         parse_mode=telegram.ParseMode.HTML)
 
 
 def show_keyboard(bot, update, choices, action, message, command=None, user_id=None):
@@ -94,7 +134,7 @@ def keyboard_response(bot, update):
         else:
             time = 1000
         best = get_best(time)
-        if best[0][0] is None:
+        if len(best) == 0:
             out = "<i>Noone has participated in this timeframe</i>\n".format(value)
         else:
             out = "<b>Highscore for the last {}:</b>\n".format(value)
@@ -102,7 +142,26 @@ def keyboard_response(bot, update):
                 amount_in_beer = amount / 5
                 out += "<b>{} {}</b>: {:.1f}l Bier\n".format(rank + 1, name, amount_in_beer)
         bot.send_message(user_id, out, parse_mode=telegram.ParseMode.HTML)
-
+    elif action == "delete":
+        command = "SELECT consumptions.id,ts,amount,drinks.name FROM consumptions JOIN drinks ON consumptions.drink_id = drinks.id WHERE consumptions.user_id = {} and deleted = 0 ORDER BY consumptions.ts ASC LIMIT 5;".format(user_id)
+        drinks = list(execute_command(db_file, command))
+        for consumption_id, timestamp, amount, drink in drinks:
+            dt_object = datetime.fromtimestamp(timestamp)
+            text = "{:%d.%m %H:%M:%S} {}l {}".format(dt_object, amount, drink)
+            if text == value:
+                command = "UPDATE consumptions SET deleted = 1 WHERE id = {}".format(consumption_id)
+                execute_command(db_file, command)
+                bot.send_message(user_id, "Ok, han {}l {} glöscht.".format(amount, drink), parse_mode=telegram.ParseMode.HTML)
+    elif action == "undelete":
+        command = "SELECT consumptions.id,ts,amount,drinks.name FROM consumptions JOIN drinks ON consumptions.drink_id = drinks.id WHERE consumptions.user_id = {} and deleted = 1 ORDER BY consumptions.ts ASC LIMIT 5;".format(user_id)
+        drinks = list(execute_command(db_file, command))
+        for consumption_id, timestamp, amount, drink in drinks:
+            dt_object = datetime.fromtimestamp(timestamp)
+            text = "{:%d.%m %H:%M:%S} {}l {}".format(dt_object, amount, drink)
+            if text == value:
+                command = "UPDATE consumptions SET deleted = 0 WHERE id = {}".format(consumption_id)
+                execute_command(db_file, command)
+                bot.send_message(user_id, "Ok, hand {}l {} weder zroggholt.".format(amount, drink), parse_mode=telegram.ParseMode.HTML)
     else:
         add_drink(bot, user_id, command, action, value)
 
@@ -117,7 +176,7 @@ def add_drink(bot, user_id, user_command, drink, size_str):
     elif size_str.endswith("l"):
         size = float(size_str.replace("l", ""))
 
-    timestamp = int(time.time() * 1000)
+    timestamp = datetime.timestamp(datetime.now())
 
     precision = fuzz.ratio(user_command.lower(), "/zapfen")
 
@@ -127,7 +186,7 @@ def add_drink(bot, user_id, user_command, drink, size_str):
     out = "Du trenksch {} {}.\n\n<i>{}</i>".format(size_str, drink, spruch)
     bot.send_message(user_id, out, parse_mode=telegram.ParseMode.HTML)
 
-    command = "INSERT INTO consumptions (user_id, drink_id, amount, ts, command, precision) VALUES ({}, {}, {}, {}, '{}', {});".format(user_id, drink_id, size, timestamp, user_command, precision)
+    command = "INSERT INTO consumptions (user_id, drink_id, amount, ts, command, precision, deleted) VALUES ({}, {}, {}, {}, '{}', {}, 0);".format(user_id, drink_id, size, timestamp, user_command, precision)
     execute_command(db_file, command)
 
 
@@ -137,8 +196,8 @@ def highscore(bot, update):
 
 
 def get_best(time_ms):
-    min_timestamp = int(time.time() * 1000) - time_ms
-    command = "SELECT SUM(consumptions.amount*drinks.vol),users.name FROM consumptions JOIN users ON consumptions.user_id = users.id JOIN drinks on consumptions.drink_id = drinks.id WHERE consumptions.ts > {} GROUP BY consumptions.user_id ORDER BY SUM(consumptions.amount*drinks.vol) DESC;".format(min_timestamp)
+    min_timestamp = datetime.timestamp(datetime.now()) - time_ms
+    command = "SELECT SUM(consumptions.amount*drinks.vol),users.name FROM consumptions JOIN users ON consumptions.user_id = users.id JOIN drinks on consumptions.drink_id = drinks.id WHERE consumptions.ts > {} and deleted = 0 GROUP BY consumptions.user_id ORDER BY SUM(consumptions.amount*drinks.vol) DESC;".format(min_timestamp)
     return list(execute_command(db_file, command))
 
 
@@ -165,13 +224,19 @@ def start(bot, update):
     user_name = update.message.from_user.first_name
     command = "INSERT INTO users (id,name) VALUES ({}, '{}');".format(user_id, user_name)
     execute_command(db_file, command)
-    bot.send_message(update.message.from_user.id, text="Welcome to Zapfen Bot. Just type /zapfen and enter your drink. Type /highscore for a Highscore. Don't worry if you can't type anymore, i'll try to guess what you meant ;)")
+    bot.send_message(update.message.from_user.id,
+                     text="Welcome to Zapfen Bot. These are the commands I know:\n" + instructions(),
+                     parse_mode=telegram.ParseMode.HTML)
 
+
+db_file = "zapfen.db"
+drink_ids = {"bier": 0, "drink": 1, "shot": 2, "wein": 3}
+available_commands = {"zapfen": (zapfen, "Add drink"),
+                      "highscore": (highscore, "Show highscore"),
+                      "delete": (delete, "Delete drink"),
+                      "undelete": (undelete, "undelete drink")}
 
 if __name__ == "__main__":
-    db_file = "zapfen.db"
-    drink_ids = {"bier": 0, "drink": 1, "shot": 2, "wein": 3}
-    available_commands = {"zapfen": zapfen, "highscore": highscore}
     updater = Updater(token=utils.apikey)
     dispatcher = updater.dispatcher
     logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)

@@ -39,12 +39,14 @@ def execute_command(db_file, command):
     return None
 
 
+sql_delete_drinks_table = """DROP TABLE drinks;"""
 sql_create_drinks_table = """ CREATE TABLE IF NOT EXISTS drinks (
                                 id integer PRIMARY KEY,
                                 name text NOT NULL,
                                 vol number NOT NULL
                             ); """
 
+sql_delete_users_table = """DROP TABLE users;"""
 sql_create_users_table = """ CREATE TABLE IF NOT EXISTS users (
                                 id integer PRIMARY KEY,
                                 name text NOT NULL,
@@ -52,7 +54,8 @@ sql_create_users_table = """ CREATE TABLE IF NOT EXISTS users (
                                 is_female boolean
                             ); """
 
-sql_create_consumptions_table = """ CREATE TABLE IF NOT EXISTS consumptions (
+sql_delete_consumptions_table = """DROP TABLE consumptions;"""
+sql_create_consumptions_table = """CREATE TABLE IF NOT EXISTS consumptions (
                                 id integer PRIMARY KEY autoincrement,
                                 user_id integer NOT NULL,
                                 drink_id integer NOT NULL,
@@ -60,14 +63,18 @@ sql_create_consumptions_table = """ CREATE TABLE IF NOT EXISTS consumptions (
                                 ts timestamp NOT NULL,
                                 command text NOT NULL,
                                 precision number NOT NULL,
+                                deleted boolean NOT NULL,
                                 FOREIGN KEY (user_id) REFERENCES users (id),
                                 FOREIGN KEY (drink_id) REFERENCES drinks (id)
                                 ); """
 
 db_file = "zapfen.db"
 conn = create_connection(db_file)
+create_table(conn, sql_delete_drinks_table)
 create_table(conn, sql_create_drinks_table)
+#create_table(conn, sql_delete_users_table)
 create_table(conn, sql_create_users_table)
+create_table(conn, sql_delete_consumptions_table)
 create_table(conn, sql_create_consumptions_table)
 
 execute_command(db_file, "INSERT INTO drinks (id,name,vol) VALUES (0, 'Bier',5);")

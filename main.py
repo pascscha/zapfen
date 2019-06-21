@@ -361,11 +361,11 @@ drink_ids = {"bier": 0, "cocktail": 1, "shot": 2, "wein": 3}
 available_commands = {"zapfen": (zapfen, "Zapf es getränk!"),
                       "highscore": (highscore, "Wer zapft am fliisigste?"),
                       "delete": (delete, "Falls eis z'vell gsi esch."),
-                      "undelete": (undelete, "Falls es doch ned z'vell gsi esch"),
-                      "promille": (promille, "Rächnet der us wie vell promille du hesch"),
-                      "gender": (get_gender, "För de Promillerächner"),
-                      "weight": (get_weight, "För de Promillerächner"),
-                      "height": (get_height, "För de Promillerächner"),
+                      "undelete": (undelete, "Falls es doch ned z'vell gsi esch."),
+                      "promille": (promille, "Rächnet der us wie vell promille du hesch."),
+                      "gender": (get_gender, "För de Promillerächner."),
+                      "weight": (get_weight, "För de Promillerächner."),
+                      "height": (get_height, "För de Promillerächner."),
                       }
 
 if __name__ == "__main__":

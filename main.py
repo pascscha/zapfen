@@ -5,6 +5,7 @@ import logging
 from datetime import datetime
 from fuzzywuzzy import process, fuzz
 import random
+import operator
 
 import telegram
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
@@ -54,10 +55,29 @@ def delete(bot, update):
             dt_object = datetime.fromtimestamp(timestamp)
             text = "{:%d.%m %H:%M:%S} {}l {}".format(dt_object, amount, drink)
             choices.append([text])
+        choices.reverse()
         show_keyboard(bot, update, choices, "delete", "Wele esch z'vell?")
     else:
         bot.send_message(update.message.from_user.id,
-                         text="Du hesch jo gar nüt tronke!",
+                         text="Du hesch jo no gar nüt zapft!",
+                         parse_mode=telegram.ParseMode.HTML)
+
+
+def undelete(bot, update):
+    command = "SELECT ts,amount,drinks.name FROM consumptions JOIN drinks ON consumptions.drink_id = drinks.id WHERE consumptions.user_id = {} and consumptions.deleted = 1 ORDER BY consumptions.ts DESC LIMIT 5;".format(update.message.from_user.id)
+    drinks = list(execute_command(db_file, command))
+
+    if len(drinks) > 0:
+        choices = []
+        for timestamp, amount, drink in drinks:
+            dt_object = datetime.fromtimestamp(timestamp)
+            text = "{:%d.%m %H:%M:%S} {}l {}".format(dt_object, amount, drink)
+            choices.append([text])
+        choices.reverse()
+        show_keyboard(bot, update, choices.reverse(), "undelete", "Wele esch doch ned z'vell gsi?")
+    else:
+        bot.send_message(update.message.from_user.id,
+                         text="Du hesch no gar nüüt glöscht!",
                          parse_mode=telegram.ParseMode.HTML)
 
 
@@ -102,7 +122,7 @@ def get_height(bot, update):
             height = height.replace("m", "")
             height = float(height)
         elif "cm" in height:
-            height = height.replace("m", "")
+            height = height.replace("cm", "")
             height = float(height) * 100
         else:
             height = float(height)
@@ -120,23 +140,6 @@ def get_height(bot, update):
     bot.send_message(update.message.from_user.id,
                      text="Du besch jetzt {:.0f}cm gross!".format(height),
                      parse_mode=telegram.ParseMode.HTML)
-
-
-def undelete(bot, update):
-    command = "SELECT ts,amount,drinks.name FROM consumptions JOIN drinks ON consumptions.drink_id = drinks.id WHERE consumptions.user_id = {} and consumptions.deleted = 1 ORDER BY consumptions.ts DESC LIMIT 5;".format(update.message.from_user.id)
-    drinks = list(execute_command(db_file, command))
-
-    if len(drinks) > 0:
-        choices = []
-        for timestamp, amount, drink in drinks:
-            dt_object = datetime.fromtimestamp(timestamp)
-            text = "{:%d.%m %H:%M:%S} {}l {}".format(dt_object, amount, drink)
-            choices.append([text])
-        show_keyboard(bot, update, choices, "undelete", "Wele esch doch ned z'vell gsi?")
-    else:
-        bot.send_message(update.message.from_user.id,
-                         text="Du hesch no gar nüüt glöscht!",
-                         parse_mode=telegram.ParseMode.HTML)
 
 
 def show_keyboard(bot, update, choices, action, message, command=None, user_id=None):
@@ -170,7 +173,7 @@ def keyboard_response(bot, update):
             choices = [["3dl"], ["5dl"], ["1l"]]
             show_keyboard(bot, update, choices, "bier", "Wie gross?", command=command, user_id=user_id)
         elif value == "Cocktail":
-            choices = [["3dl"], ["5dl"], ["1l"]]
+            choices = [["2dl"], ["3dl"], ["5l"]]
             show_keyboard(bot, update, choices, "cocktail", "Wie gross?", command=command, user_id=user_id)
         elif value == "Shot":
             choices = [["1cl"], ["2cl"], ["4cl"]]
@@ -184,7 +187,9 @@ def keyboard_response(bot, update):
         hour = 60 * minute
         day = 24 * hour
         week = 7 * day
-        if value.endswith("w"):
+        if value == "Promille":
+            time = 100 * 365 * day
+        elif value.endswith("w"):
             time = float(value.replace("w", "")) * week
         elif value.endswith("d"):
             time = float(value.replace("d", "")) * day
@@ -193,23 +198,33 @@ def keyboard_response(bot, update):
         elif value.endswith("m"):
             time = float(value.replace("m", "")) * minute
         else:
-            time = 1000
+            time = second
         best = get_best(time)
         if len(best) == 0:
             out = "<i>Noone has participated in this timeframe</i>\n".format(value)
         else:
-            out = "<b>Highscore for the last {}:</b>\n".format(value)
-            for rank, (amount, name, highscore_user_id) in enumerate(best):
+            highscore_list = []
+            for amount, name, highscore_user_id in best:
                 amount_in_beer = amount / 5
                 promille = promille_rechner(highscore_user_id)
+                highscore_list.append(name, amount_in_beer, promille)
+
+            if value == "Promille":
+                out = "<b>Highscore by Promille</b>\n".format(value)
+                highscore_list.sort(key=operator.itemgetter(2), reverse=True)
+            else:
+                out = "<b>Highscore for the last {}:</b>\n".format(value)
+
+            for rank, (name, amount_in_beer, promille) in enumerate(highscore_list):
                 if promille is not None:
                     promille = " ({:.2f}‰)".format(promille)
                 else:
                     promille = ""
                 out += "<b>{} {}</b>: {:.1f}l Bier{}\n".format(rank + 1, name, amount_in_beer, promille)
         bot.send_message(user_id, out, parse_mode=telegram.ParseMode.HTML)
+
     elif action == "delete":
-        command = "SELECT consumptions.id,ts,amount,drinks.name FROM consumptions JOIN drinks ON consumptions.drink_id = drinks.id WHERE consumptions.user_id = {} and deleted = 0 ORDER BY consumptions.ts ASC LIMIT 5;".format(user_id)
+        command = "SELECT consumptions.id,ts,amount,drinks.name FROM consumptions JOIN drinks ON consumptions.drink_id = drinks.id WHERE consumptions.user_id = {} and deleted = 0 ORDER BY consumptions.ts DESC LIMIT 5;".format(user_id)
         drinks = list(execute_command(db_file, command))
         for consumption_id, timestamp, amount, drink in drinks:
             dt_object = datetime.fromtimestamp(timestamp)
@@ -219,7 +234,7 @@ def keyboard_response(bot, update):
                 execute_command(db_file, command)
                 bot.send_message(user_id, "Ok, han {}l {} glöscht.".format(amount, drink), parse_mode=telegram.ParseMode.HTML)
     elif action == "undelete":
-        command = "SELECT consumptions.id,ts,amount,drinks.name FROM consumptions JOIN drinks ON consumptions.drink_id = drinks.id WHERE consumptions.user_id = {} and deleted = 1 ORDER BY consumptions.ts ASC LIMIT 5;".format(user_id)
+        command = "SELECT consumptions.id,ts,amount,drinks.name FROM consumptions JOIN drinks ON consumptions.drink_id = drinks.id WHERE consumptions.user_id = {} and deleted = 1 ORDER BY consumptions.ts DESC LIMIT 5;".format(user_id)
         drinks = list(execute_command(db_file, command))
         for consumption_id, timestamp, amount, drink in drinks:
             dt_object = datetime.fromtimestamp(timestamp)
@@ -270,7 +285,7 @@ def add_drink(bot, user_id, user_command, drink, size_str):
 
 
 def highscore(bot, update):
-    choices = [["1h"], ["3h"], ["1d"], ["1w"]]
+    choices = [["1h"], ["3h"], ["1d"], ["1w"], ["Promille"]]
     show_keyboard(bot, update, choices, "highscore", "Wie lang?")
 
 

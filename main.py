@@ -352,13 +352,13 @@ def promille_rechner(user_id):
         bak_resorbiert = bak_theoretisch - (bak_theoretisch * .15)
         print(bak_resorbiert)
         time_since_last = (timestamp - last_timestamp) / (60 * 60)
-        last_promille = max(0, last_promille - time_since_last * 0.15) + bak_resorbiert
+        last_promille = max(0, last_promille - time_since_last * 0.00015) + bak_resorbiert
         last_timestamp = timestamp
         print("{:%d.%m %H:%M:%S} {}".format(datetime.fromtimestamp(timestamp), last_promille * 1000))
 
     now = datetime.timestamp(datetime.now())
     time_since_last = (now - last_timestamp) / (60 * 60)
-    return max(0, last_promille - time_since_last * 0.15) * 1000
+    return max(0, last_promille - time_since_last * 0.00015) * 1000
 
 
 def start(bot, update):

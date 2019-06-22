@@ -207,7 +207,7 @@ def keyboard_response(bot, update):
             for amount, name, highscore_user_id in best:
                 amount_in_beer = amount / 5
                 promille = promille_rechner(highscore_user_id)
-                highscore_list.append(name, amount_in_beer, promille)
+                highscore_list.append((name, amount_in_beer, promille))
 
             if value == "Promille":
                 out = "<b>Highscore by Promille</b>\n".format(value)
@@ -285,7 +285,7 @@ def add_drink(bot, user_id, user_command, drink, size_str):
 
 
 def highscore(bot, update):
-    choices = [["1h"], ["3h"], ["1d"], ["1w"], ["Promille"]]
+    choices = [["1h","3h"], ["1d","1w"], ["Promille"]]
     show_keyboard(bot, update, choices, "highscore", "Wie lang?")
 
 

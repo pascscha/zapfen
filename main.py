@@ -199,9 +199,9 @@ def keyboard_response(bot, update):
             out = "<i>Noone has participated in this timeframe</i>\n".format(value)
         else:
             out = "<b>Highscore for the last {}:</b>\n".format(value)
-            for rank, (amount, name, user_id) in enumerate(best):
+            for rank, (amount, name, highscore_user_id) in enumerate(best):
                 amount_in_beer = amount / 5
-                promille = promille_rechner(user_id)
+                promille = promille_rechner(highscore_user_id)
                 if promille is not None:
                     promille = " ({:.2f}‰)".format(promille)
                 else:

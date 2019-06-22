@@ -285,7 +285,7 @@ def add_drink(bot, user_id, user_command, drink, size_str):
 
 
 def highscore(bot, update):
-    choices = [["1h","3h"], ["1d","1w"], ["Promille"]]
+    choices = [["1h", "3h"], ["1d", "1w"], ["Promille"]]
     show_keyboard(bot, update, choices, "highscore", "Wie lang?")
 
 
@@ -354,7 +354,7 @@ def promille_rechner(user_id):
         time_since_last = (timestamp - last_timestamp) / (60 * 60)
         last_promille = max(0, last_promille - time_since_last * 0.15) + bak_resorbiert
         last_timestamp = timestamp
-        print(last_promille)
+        print("{:%d.%m %H:%M:%S} {}".format(dt_object, last_promille * 1000))
 
     now = datetime.timestamp(datetime.now())
     time_since_last = (now - last_timestamp) / (60 * 60)

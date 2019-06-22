@@ -45,7 +45,7 @@ def zapfen(bot, update):
 
 
 def delete(bot, update):
-    command = "SELECT ts,amount,drinks.name FROM consumptions JOIN drinks ON consumptions.drink_id = drinks.id WHERE consumptions.user_id = {} and deleted = 0 ORDER BY consumptions.ts ASC LIMIT 5;".format(update.message.from_user.id)
+    command = "SELECT ts,amount,drinks.name FROM consumptions JOIN drinks ON consumptions.drink_id = drinks.id WHERE consumptions.user_id = {} and consumptions.deleted = 0 ORDER BY consumptions.ts DESC LIMIT 5;".format(update.message.from_user.id)
     drinks = list(execute_command(db_file, command))
 
     if len(drinks) > 0:
@@ -123,7 +123,7 @@ def get_height(bot, update):
 
 
 def undelete(bot, update):
-    command = "SELECT ts,amount,drinks.name FROM consumptions JOIN drinks ON consumptions.drink_id = drinks.id WHERE consumptions.user_id = {} and deleted = 1 ORDER BY consumptions.ts ASC LIMIT 5;".format(update.message.from_user.id)
+    command = "SELECT ts,amount,drinks.name FROM consumptions JOIN drinks ON consumptions.drink_id = drinks.id WHERE consumptions.user_id = {} and consumptions.deleted = 1 ORDER BY consumptions.ts DESC LIMIT 5;".format(update.message.from_user.id)
     drinks = list(execute_command(db_file, command))
 
     if len(drinks) > 0:
@@ -179,7 +179,7 @@ def keyboard_response(bot, update):
             choices = [["1dl"], ["2dl"]]
             show_keyboard(bot, update, choices, "wein", "Wie gross?", command=command, user_id=user_id)
     elif action == "highscore":
-        second = 1000
+        second = 1
         minute = 60 * second
         hour = 60 * minute
         day = 24 * hour
@@ -325,7 +325,7 @@ def promille_rechner(user_id):
         koeff = 0.31608 - 0.004821 * weight + 0.004432 * height
 
     print(koeff)
-    command = "SELECT ts, amount, drinks.vol FROM consumptions JOIN drinks ON consumptions.drink_id = drinks.id WHERE consumptions.user_id = 505873517 and consumptions.deleted = 0 ORDER BY consumptions.ts ASC"
+    command = "SELECT ts, amount, drinks.vol FROM consumptions JOIN drinks ON consumptions.drink_id = drinks.id WHERE consumptions.user_id = {} and consumptions.deleted = 0 ORDER BY consumptions.ts ASC".format(user_id)
     drinks = execute_command(db_file, command)
 
     last_promille = 0
@@ -336,13 +336,13 @@ def promille_rechner(user_id):
         bak_theoretisch = alkohol_g / (weight * koeff)
         bak_resorbiert = bak_theoretisch - (bak_theoretisch * .15)
         print(bak_resorbiert)
-        time_since_last = (timestamp - last_timestamp) / (1000 * 60 * 60)
+        time_since_last = (timestamp - last_timestamp) / (60 * 60)
         last_promille = max(0, last_promille - time_since_last * 0.15) + bak_resorbiert
         last_timestamp = timestamp
         print(last_promille)
 
     now = datetime.timestamp(datetime.now())
-    time_since_last = (now - last_timestamp) / (1000 * 60 * 60)
+    time_since_last = (now - last_timestamp) / (60 * 60)
     return max(0, last_promille - time_since_last * 0.15) * 1000
 
 

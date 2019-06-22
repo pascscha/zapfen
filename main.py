@@ -326,8 +326,8 @@ def promille(bot, update):
 
 
 def promille_rechner(user_id):
-    command = "SELECT height,weight,is_female from users WHERE id = {};".format(user_id)
-    height, weight, is_female = execute_command(db_file, command)[0]
+    command = "SELECT height,weight,is_female,name from users WHERE id = {};".format(user_id)
+    height, weight, is_female, name = execute_command(db_file, command)[0]
 
     print(height, weight, is_female)
 
@@ -335,9 +335,9 @@ def promille_rechner(user_id):
         return None
 
     if is_female:
-        koeff = 0.31223 - 0.006446 * weight + 0.004466 * height
+        koeff = 1.055 * (-2.097 + 0.1069 * height + 0.2466 * weight) / (0.8 * weight)
     else:
-        koeff = 0.31608 - 0.004821 * weight + 0.004432 * height
+        koeff = 1.055 * (2.447 - 0.09516 * 23 + 0.1074 * height + 0.3362 * weight) / (0.8 * weight)
 
     print(koeff)
     command = "SELECT ts, amount, drinks.vol FROM consumptions JOIN drinks ON consumptions.drink_id = drinks.id WHERE consumptions.user_id = {} and consumptions.deleted = 0 ORDER BY consumptions.ts ASC".format(user_id)
@@ -345,20 +345,25 @@ def promille_rechner(user_id):
 
     last_promille = 0
     last_timestamp = 0
-
+    time_promille = []
     for timestamp, amount, vol in drinks:
         alkohol_g = amount * 0.8 * vol / 100
         bak_theoretisch = alkohol_g / (weight * koeff)
         bak_resorbiert = bak_theoretisch - (bak_theoretisch * .15)
         print(bak_resorbiert)
         time_since_last = (timestamp - last_timestamp) / (60 * 60)
-        last_promille = max(0, last_promille - time_since_last * 0.00015) + bak_resorbiert
+        last_promille = max(0, last_promille - time_since_last * 0.0001) + bak_resorbiert
         last_timestamp = timestamp
-        print("{:%d.%m %H:%M:%S} {}".format(datetime.fromtimestamp(timestamp), last_promille * 1000))
+        time_promille.append((last_timestamp, last_promille))
+        print("{} {:%d.%m %H:%M:%S} {}".format(name, datetime.fromtimestamp(timestamp), last_promille * 1000))
 
-    now = datetime.timestamp(datetime.now())
-    time_since_last = (now - last_timestamp) / (60 * 60)
-    return max(0, last_promille - time_since_last * 0.00015) * 1000
+    timestamp_now = datetime.timestamp(datetime.now())
+    time_since_last = (timestamp_now - last_timestamp) / (60 * 60)
+
+    promille_now = max(0, last_promille - time_since_last * 0.0001)
+    time_promille.append((timestamp_now, promille_now))
+
+    return max(0, last_promille - time_since_last * 0.0001) * 1000
 
 
 def start(bot, update):

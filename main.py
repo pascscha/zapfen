@@ -350,12 +350,11 @@ def promille_rechner(user_id):
         alkohol_g = amount * 0.8 * vol / 100
         bak_theoretisch = alkohol_g / (weight * koeff)
         bak_resorbiert = bak_theoretisch - (bak_theoretisch * .15)
-        print(bak_resorbiert)
         time_since_last = (timestamp - last_timestamp) / (60 * 60)
         last_promille = max(0, last_promille - time_since_last * 0.0001) + bak_resorbiert
         last_timestamp = timestamp
         time_promille.append((last_timestamp, last_promille))
-        print("{} {:%d.%m %H:%M:%S} {}".format(name, datetime.fromtimestamp(timestamp), last_promille * 1000))
+        print("{} {:%d.%m %H:%M:%S} {:.5f} {:.5f}".format(name, datetime.fromtimestamp(timestamp), bak_resorbiert * 1000, last_promille * 1000))
 
     timestamp_now = datetime.timestamp(datetime.now())
     time_since_last = (timestamp_now - last_timestamp) / (60 * 60)

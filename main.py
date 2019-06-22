@@ -354,7 +354,7 @@ def promille_rechner(user_id):
         time_since_last = (timestamp - last_timestamp) / (60 * 60)
         last_promille = max(0, last_promille - time_since_last * 0.15) + bak_resorbiert
         last_timestamp = timestamp
-        print("{:%d.%m %H:%M:%S} {}".format(dt_object, last_promille * 1000))
+        print("{:%d.%m %H:%M:%S} {}".format(datetime.fromtimestamp(timestamp), last_promille * 1000))
 
     now = datetime.timestamp(datetime.now())
     time_since_last = (now - last_timestamp) / (60 * 60)

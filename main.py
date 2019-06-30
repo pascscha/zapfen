@@ -192,6 +192,9 @@ def keyboard_response(bot, update):
         if value == "∞" or value == "Promille":
             time = 0
             out = "<b>Eternal Ranking</b>\n"
+        if value == "Promille":
+            time = 0
+            out = "<b>Promille Ranking</b>\n"
         elif value == "1h":
             time = now_ts - hour
             out = "<b>Highscore for the last hour:</b>\n"
@@ -370,7 +373,7 @@ def promille_rechner(user_id):
         if last_promille == 0:
             relevant_amount = 0
         last_promille += bak_resorbiert
-        relevant_amount += amount
+        relevant_amount += amount * vol
         last_timestamp = timestamp
         time_promille.append((last_timestamp, last_promille))
         print("{} {:%d.%m %H:%M:%S} {:.5f} {:.5f}".format(name, datetime.fromtimestamp(timestamp), bak_resorbiert * 1000, last_promille * 1000))

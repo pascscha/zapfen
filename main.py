@@ -189,10 +189,10 @@ def keyboard_response(bot, update):
         week = 7 * day
         now = datetime.now()
         now_ts = datetime.timestamp(now)
-        if value == "∞" or value == "Promille":
+        if value == "∞":
             time = 0
             out = "<b>Eternal Ranking</b>\n"
-        if value == "Promille":
+        elif value == "Promille":
             time = 0
             out = "<b>Promille Ranking</b>\n"
         elif value == "1h":

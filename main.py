@@ -222,6 +222,8 @@ def keyboard_response(bot, update):
             if value == "Promille":
                 highscore_list.sort(key=operator.itemgetter(2), reverse=True)
                 for rank, (name, amount_in_beer, promille, relevant_amount) in enumerate(highscore_list):
+                    if relevant_amount == 0:
+                        return
                     if promille is not None:
                         promille = " ({:.2f}‰)".format(promille)
                     else:
@@ -367,8 +369,8 @@ def promille_rechner(user_id):
         last_promille = max(0, last_promille - time_since_last * 0.0001)
         if last_promille == 0:
             relevant_amount = 0
-        last_promille + bak_resorbiert
-        relevant_amount + amount
+        last_promille += bak_resorbiert
+        relevant_amount += amount
         last_timestamp = timestamp
         time_promille.append((last_timestamp, last_promille))
         print("{} {:%d.%m %H:%M:%S} {:.5f} {:.5f}".format(name, datetime.fromtimestamp(timestamp), bak_resorbiert * 1000, last_promille * 1000))

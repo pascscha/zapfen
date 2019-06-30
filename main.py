@@ -187,18 +187,28 @@ def keyboard_response(bot, update):
         hour = 60 * minute
         day = 24 * hour
         week = 7 * day
-        if value == "Promille":
-            time = 100 * 365 * day
-        elif value.endswith("w"):
-            time = float(value.replace("w", "")) * week
-        elif value.endswith("d"):
-            time = float(value.replace("d", "")) * day
-        elif value.endswith("h"):
-            time = float(value.replace("h", "")) * hour
-        elif value.endswith("m"):
-            time = float(value.replace("m", "")) * minute
+        now = datetime.now()
+        now_ts = datetime.timestamp(now)
+        if value == "∞" or value == "Promille":
+            time = 0
+            out = "<b>Eternal Ranking</b>\n"
+        elif value == "1h":
+            time = now_ts - hour
+            out = "<b>Highscore for the last hour:</b>\n"
+        elif value == "1w":
+            time = now_ts - week
+            out = "<b>Highscore for the last week:</b>\n"
+        elif value == "10:00":
+            if now.hour >= 10:
+                out = "<b>Highscore since 10:00 today:</b>\n"
+                hours = now.hour - 10
+            else:
+                out = "<b>Highscore since 10:00 yesterday:</b>\n"
+                hours = now.hour + 14
+            time = hours * hour + now.minute * minute + now.second * second
         else:
-            time = second
+            out = "<b>There was an internal error so here's the ranking for the last minute:</b>\n"
+            time = minute
         best = get_best(time)
         if len(best) == 0:
             out = "<i>Noone has participated in this timeframe</i>\n".format(value)
@@ -206,21 +216,24 @@ def keyboard_response(bot, update):
             highscore_list = []
             for amount, name, highscore_user_id in best:
                 amount_in_beer = amount / 5
-                promille = promille_rechner(highscore_user_id)
-                highscore_list.append((name, amount_in_beer, promille))
+                promille, relevant_amount = promille_rechner(highscore_user_id)
+                highscore_list.append((name, amount_in_beer, promille, relevant_amount))
 
             if value == "Promille":
-                out = "<b>Highscore by Promille</b>\n".format(value)
                 highscore_list.sort(key=operator.itemgetter(2), reverse=True)
+                for rank, (name, amount_in_beer, promille, relevant_amount) in enumerate(highscore_list):
+                    if promille is not None:
+                        promille = " ({:.2f}‰)".format(promille)
+                    else:
+                        promille = ""
+                    out += "<b>{} {}</b>: {:.1f}l Bier{}\n".format(rank + 1, name, relevant_amount, promille)
             else:
-                out = "<b>Highscore for the last {}:</b>\n".format(value)
-
-            for rank, (name, amount_in_beer, promille) in enumerate(highscore_list):
-                if promille is not None:
-                    promille = " ({:.2f}‰)".format(promille)
-                else:
-                    promille = ""
-                out += "<b>{} {}</b>: {:.1f}l Bier{}\n".format(rank + 1, name, amount_in_beer, promille)
+                for rank, (name, amount_in_beer, promille, relevant_amount) in enumerate(highscore_list):
+                    if promille is not None:
+                        promille = " ({:.2f}‰)".format(promille)
+                    else:
+                        promille = ""
+                    out += "<b>{} {}</b>: {:.1f}l Bier{}\n".format(rank + 1, name, amount_in_beer, promille)
         bot.send_message(user_id, out, parse_mode=telegram.ParseMode.HTML)
 
     elif action == "delete":
@@ -285,12 +298,11 @@ def add_drink(bot, user_id, user_command, drink, size_str):
 
 
 def highscore(bot, update):
-    choices = [["1h", "3h"], ["1d", "1w"], ["Promille"]]
+    choices = [["1h", "10:00"], ["1w", "∞"], ["Promille"]]
     show_keyboard(bot, update, choices, "highscore", "Wie lang?")
 
 
-def get_best(time_ms):
-    min_timestamp = datetime.timestamp(datetime.now()) - time_ms
+def get_best(min_timestamp):
     command = "SELECT SUM(consumptions.amount*drinks.vol),users.name,users.id FROM consumptions JOIN users ON consumptions.user_id = users.id JOIN drinks on consumptions.drink_id = drinks.id WHERE consumptions.ts > {} and deleted = 0 GROUP BY consumptions.user_id ORDER BY SUM(consumptions.amount*drinks.vol) DESC;".format(min_timestamp)
     return list(execute_command(db_file, command))
 
@@ -345,13 +357,18 @@ def promille_rechner(user_id):
 
     last_promille = 0
     last_timestamp = 0
+    relevant_amount = 0
     time_promille = []
     for timestamp, amount, vol in drinks:
         alkohol_g = amount * 0.8 * vol / 100
         bak_theoretisch = alkohol_g / (weight * koeff)
         bak_resorbiert = bak_theoretisch - (bak_theoretisch * .15)
         time_since_last = (timestamp - last_timestamp) / (60 * 60)
-        last_promille = max(0, last_promille - time_since_last * 0.0001) + bak_resorbiert
+        last_promille = max(0, last_promille - time_since_last * 0.0001)
+        if last_promille == 0:
+            relevant_amount = 0
+        last_promille + bak_resorbiert
+        relevant_amount + amount
         last_timestamp = timestamp
         time_promille.append((last_timestamp, last_promille))
         print("{} {:%d.%m %H:%M:%S} {:.5f} {:.5f}".format(name, datetime.fromtimestamp(timestamp), bak_resorbiert * 1000, last_promille * 1000))
@@ -360,9 +377,11 @@ def promille_rechner(user_id):
     time_since_last = (timestamp_now - last_timestamp) / (60 * 60)
 
     promille_now = max(0, last_promille - time_since_last * 0.0001)
+    if promille_now == 0:
+        relevant_amount = 0
     time_promille.append((timestamp_now, promille_now))
 
-    return max(0, last_promille - time_since_last * 0.0001) * 1000
+    return max(0, last_promille - time_since_last * 0.0001) * 1000, relevant_amount
 
 
 def start(bot, update):

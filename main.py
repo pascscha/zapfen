@@ -205,7 +205,7 @@ def keyboard_response(bot, update):
             else:
                 out = "<b>Highscore since 10:00 yesterday:</b>\n"
                 hours = now.hour + 14
-            time = hours * hour + now.minute * minute + now.second * second
+            time = now_ts - (hours * hour + now.minute * minute + now.second * second)
         else:
             out = "<b>There was an internal error so here's the ranking for the last minute:</b>\n"
             time = minute

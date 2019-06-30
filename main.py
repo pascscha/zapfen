@@ -223,7 +223,7 @@ def keyboard_response(bot, update):
                 highscore_list.sort(key=operator.itemgetter(2), reverse=True)
                 for rank, (name, amount_in_beer, promille, relevant_amount) in enumerate(highscore_list):
                     if relevant_amount == 0:
-                        return
+                        break
                     if promille is not None:
                         promille = " ({:.2f}‰)".format(promille)
                     else:

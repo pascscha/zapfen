@@ -226,7 +226,7 @@ def keyboard_response(bot, update):
                         promille = " ({:.2f}‰)".format(promille)
                     else:
                         promille = ""
-                    out += "<b>{} {}</b>: {:.1f}l Bier{}\n".format(rank + 1, name, relevant_amount, promille)
+                    out += "<b>{} {}</b>: {:.1f}l Bier{}\n".format(rank + 1, name, relevant_amount / 5, promille)
             else:
                 for rank, (name, amount_in_beer, promille, relevant_amount) in enumerate(highscore_list):
                     if promille is not None:
@@ -326,14 +326,14 @@ def execute_command(db_file, command):
 
 
 def promille(bot, update):
-    promille = promille_rechner(update.message.from_user.id)
+    promille, relevant_amount = promille_rechner(update.message.from_user.id)
     if promille is None:
         bot.send_message(update.message.from_user.id,
                          "Ech bruuche dis gwecht, gschlächt ond dini grössi för das.\n/weight\n/height\n/gender",
                          parse_mode=telegram.ParseMode.HTML)
     else:
         bot.send_message(update.message.from_user.id,
-                         "Du hesch momentan {:.2f}‰.".format(promille),
+                         "Du hesch momentan {:.2f}‰ wäg {:.1f}l Bier.".format(promille, relevant_amount / 5),
                          parse_mode=telegram.ParseMode.HTML)
 
 

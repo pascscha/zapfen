@@ -74,7 +74,7 @@ def undelete(bot, update):
             text = "{:%d.%m %H:%M:%S} {}l {}".format(dt_object, amount, drink)
             choices.append([text])
         choices.reverse()
-        show_keyboard(bot, update, choices.reverse(), "undelete", "Wele esch doch ned z'vell gsi?")
+        show_keyboard(bot, update, choices, "undelete", "Wele esch doch ned z'vell gsi?")
     else:
         bot.send_message(update.message.from_user.id,
                          text="Du hesch no gar nüüt glöscht!",
@@ -170,7 +170,7 @@ def keyboard_response(bot, update):
 
     if action == "zapfen":
         if value == "Bier":
-            choices = [["3dl"], ["5dl"], ["1l"]]
+            choices = [["1dl"], ["3dl"], ["5dl"], ["1l"]]
             show_keyboard(bot, update, choices, "bier", "Wie gross?", command=command, user_id=user_id)
         elif value == "Cocktail":
             choices = [["2dl"], ["3dl"], ["5l"]]
@@ -214,7 +214,7 @@ def keyboard_response(bot, update):
             time = minute
         best = get_best(time)
         if len(best) == 0:
-            out = "<i>Noone has participated in this timeframe</i>\n".format(value)
+            out = "<i>Noone has participated in this timeframe</i>\n"
         else:
             highscore_list = []
             for amount, name, highscore_user_id in best:
@@ -224,14 +224,19 @@ def keyboard_response(bot, update):
 
             if value == "Promille":
                 highscore_list.sort(key=operator.itemgetter(2), reverse=True)
+                count = 0
                 for rank, (name, amount_in_beer, promille, relevant_amount) in enumerate(highscore_list):
                     if relevant_amount == 0:
                         break
-                    if promille is not None:
-                        promille = " ({:.2f}‰)".format(promille)
-                    else:
-                        promille = ""
-                    out += "<b>{} {}</b>: {:.1f}l Bier{}\n".format(rank + 1, name, relevant_amount / 5, promille)
+                    if relevant_amount is not None:
+                        if promille is not None:
+                            promille = " ({:.2f}‰)".format(promille)
+                        else:
+                            promille = ""
+                        out += "<b>{} {}</b>: {:.1f}l Bier{}\n".format(rank + 1, name, relevant_amount / 5, promille)
+                        count += 1
+                if count == 0:
+                    out = "<i>Everyone is sober.</i>\n"
             else:
                 for rank, (name, amount_in_beer, promille, relevant_amount) in enumerate(highscore_list):
                     if promille is not None:
@@ -349,7 +354,7 @@ def promille_rechner(user_id):
     print(height, weight, is_female)
 
     if height is None or weight is None or is_female is None:
-        return None
+        return None, None
 
     if is_female:
         koeff = 1.055 * (-2.097 + 0.1069 * height + 0.2466 * weight) / (0.8 * weight)

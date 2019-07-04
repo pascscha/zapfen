@@ -40,7 +40,7 @@ def execute_command(db_file, command):
 
 
 sql_delete_drinks_table = """DROP TABLE drinks;"""
-sql_create_drinks_table = """ CREATE TABLE IF NOT EXISTS drinks (
+sql_create_drinks_table = """ CREATE TABLE drinks (
                                 id integer PRIMARY KEY,
                                 name text NOT NULL,
                                 vol number NOT NULL
